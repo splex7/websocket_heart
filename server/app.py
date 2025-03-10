@@ -1,13 +1,16 @@
 from flask import Flask, render_template, request
 from flask_socketio import SocketIO, emit, disconnect
+from flask_cors import CORS
 import threading
 import time
 from datetime import datetime
 import json
 import os
+import ssl
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
+CORS(app, resources={r"/*": {"origins": "*"}})
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
 clients = {}
@@ -73,4 +76,15 @@ def monitor_clients():
 
 if __name__ == "__main__":
     threading.Thread(target=monitor_clients, daemon=True).start()
-    socketio.run(app, debug=True, host='0.0.0.0', port=5000)
+    ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    ssl_context.load_cert_chain(
+        certfile='cert.pem',
+        keyfile='key.pem'
+    )
+    socketio.run(
+        app,
+        debug=True,
+        host='0.0.0.0',
+        port=5000,
+        ssl_context=ssl_context
+    )
