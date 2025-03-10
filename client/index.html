@@ -1,157 +1,172 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Trae Cheer</title>
-  <style>
-    
-
-    * {
-      user-select: none;
-      -webkit-user-select: none;
-      -webkit-touch-callout: none;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .app {
-      width: 100vw;
-      height: 100vh;
-      background-color: white;
-      position: relative;
-      overflow: hidden;
-      cursor: pointer;
-      touch-action: none;
-    }
-
-    #heart-container {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-    }
-
-    .floating-heart {
-      position: absolute;
-      font-size: 24px;
-      animation: float-up 2s ease-out forwards;
-      pointer-events: none;
-      user-select: none;
-    }
-
-    @keyframes float-up {
-      0% {
-        transform: scale(0.8) translateY(0);
-        opacity: 1;
-      }
-      100% {
-        transform: scale(1.2) translateY(-80vh);
-        opacity: 0;
-      }
-    }
-
-    .click-count {
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background-color: rgba(0, 0, 0, 0.5);
-      color: white;
-      padding: 10px 20px;
-      border-radius: 20px;
-      font-size: 18px;
-      pointer-events: none;
-      user-select: none;
-    }
-
-    .error-message {
-      position: fixed;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background-color: rgba(255, 0, 0, 0.8);
-      color: white;
-      padding: 10px 20px;
-      border-radius: 4px;
-      font-size: 16px;
-      z-index: 1000;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trae Cheer</title>
+    <style>
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .app {
+            width: 100vw;
+            height: 100vh;
+            background-color: white;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            touch-action: none;
+        }
+        #heart-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        .floating-heart {
+            position: absolute;
+            font-size: 24px;
+            animation: float-up 2s ease-out forwards;
+            pointer-events: none;
+            user-select: none;
+        }
+        @keyframes float-up {
+            0% {
+                transform: scale(0.8) translateY(0);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(1.2) translateY(-80vh);
+                opacity: 0;
+            }
+        }
+        .click-count {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 18px;
+            pointer-events: none;
+            user-select: none;
+        }
+        .active-users {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 14px;
+            pointer-events: none;
+            user-select: none;
+        }
+        .error-message {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(255, 0, 0, 0.8);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-size: 16px;
+            z-index: 1000;
+        }
+    </style>
 </head>
 <body>
-  <div class="app" id="app">
-    <div id="heart-container"></div>
-    <div class="click-count" id="click-count">Hearts sent: 0</div>
-  </div>
+    <div class="app" id="app">
+        <div id="heart-container"></div>
+        <div class="click-count" id="click-count">Hearts sent: 0</div>
+        <div class="active-users" id="active-users">Active Users: 1</div>
+    </div>
+    <script src="https://cdn.socket.io/4.0.1/socket.io.min.js"></script>
+    <script>
+        const BACKEND_URL = 'http://130.162.138.230:5000' || 'http://localhost:5000';
+        let clickCount = 0;
+        let socket = null;
 
-  <script src="https://cdn.socket.io/4.0.1/socket.io.min.js"></script>
-  <script>
-    const BACKEND_URL = 'https://130.162.138.230:5000' || 'https://localhost:5000';
-    let clickCount = 0;
-    let socket = null;
+        function createFloatingHeart(x, y, isRemote = false) {
+            const heart = document.createElement('div');
+            heart.innerHTML = '❤️';
+            heart.className = 'floating-heart';
+            const randomX = Math.random() * 100; // 0~100vw 범위의 랜덤 X 좌표
+            heart.style.left = `${isRemote ? x : randomX}vw`;
+            heart.style.top = `${isRemote ? y : 100}vh`; // 100vh 는 화면의 맨 아래
+            document.getElementById('heart-container').appendChild(heart);
 
-    function createFloatingHeart(x, y, isRemote = false) {
-      const heart = document.createElement('div');
-      heart.innerHTML = '❤️';
-      heart.className = 'floating-heart';
-      const randomX = Math.random() * window.innerWidth;
-      heart.style.left = `${isRemote ? x : randomX}px`;
-      heart.style.top = `${isRemote ? y : window.innerHeight}px`;
-      document.getElementById('heart-container').appendChild(heart);
+            if (!isRemote) {
+                clickCount++;
+                document.getElementById('click-count').textContent = `Hearts sent: ${clickCount}`;
+                socket?.emit('heart_click', { x: randomX, y: 100 }); // y는 100vh로 고정
+            }
+            setTimeout(() => heart.remove(), 2000);
+        }
 
-      if (!isRemote) {
-        clickCount++;
-        document.getElementById('click-count').textContent = `Hearts sent: ${clickCount}`;
-        socket?.emit('heart_click', { x: randomX, y: window.innerHeight });
-      }
+        function showError() {
+            const existingError = document.querySelector('.error-message');
+            if (!existingError) {
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'error-message';
+                errorDiv.textContent = 'Unable to connect to server. Please try again later.';
+                document.body.appendChild(errorDiv);
+            }
+        }
 
-      setTimeout(() => heart.remove(), 2000);
-    }
+        function hideError() {
+            const errorDiv = document.querySelector('.error-message');
+            if (errorDiv) {
+                errorDiv.remove();
+            }
+        }
 
-    function showError() {
-      const existingError = document.querySelector('.error-message');
-      if (!existingError) {
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'error-message';
-        errorDiv.textContent = 'Unable to connect to server. Please try again later.';
-        document.body.appendChild(errorDiv);
-      }
-    }
+        function connectSocket() {
+            socket = io(BACKEND_URL, {
+                reconnection: true,
+                reconnectionAttempts: 5,
+                reconnectionDelay: 1000,
+            });
 
-    function hideError() {
-      const errorDiv = document.querySelector('.error-message');
-      if (errorDiv) {
-        errorDiv.remove();
-      }
-    }
+            socket.on('connect', () => {
+                hideError();
+            });
 
-    function connectSocket() {
-      socket = io(BACKEND_URL, {
-        reconnection: true,
-        reconnectionAttempts: 5,
-        reconnectionDelay: 1000,
-      });
+            socket.on('connect_error', (error) => {
+                console.error('Socket connection error:', error);
+                showError();
+                document.getElementById('active-users').textContent = 'Active Users: X';
+            });
 
-      socket.on('connect', () => {
-        hideError();
-      });
+            socket.on('disconnect', () => {
+                document.getElementById('active-users').textContent = 'Active Users: X';
+            });
 
-      socket.on('connect_error', (error) => {
-        console.error('Socket connection error:', error);
-        showError();
-      });
+            socket.on('heart_click', (data) => {
+                createFloatingHeart(data.x, data.y, true);
+            });
 
-      socket.on('heart_click', (data) => {
-        createFloatingHeart(data.x, data.y, true);
-      });
-    }
+            socket.on('active_users_update', (count) => {
+                document.getElementById('active-users').textContent = `Active Users: ${count}`;
+            });
+        }
 
-    document.getElementById('app').addEventListener('click', (e) => {
-      createFloatingHeart(e.clientX, e.clientY);
-    });
+        document.getElementById('app').addEventListener('click', (e) => {
+            const x = (e.clientX / window.innerWidth) * 100;
+            const y = (e.clientY / window.innerHeight) * 100;
+            createFloatingHeart(x, y);
+        });
 
-    connectSocket();
-  </script>
+        connectSocket();
+    </script>
 </body>
 </html>
