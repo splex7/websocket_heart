@@ -11,5 +11,6 @@ export default defineConfig({
   },
   server: {
     port: 3000
-  }
+  },
+  base: "/" // Netlify에서 루트 경로를 명확하게 지정
 })
