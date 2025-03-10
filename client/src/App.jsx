@@ -2,21 +2,41 @@ import { useState, useEffect } from 'react'
 import io from 'socket.io-client'
 import './App.css'
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://217.142.136.40:5000' || 'http://localhost:5000'
 
 function App() {
   const [socket, setSocket] = useState(null)
   const [clickCount, setClickCount] = useState(0)
+  const [connectionError, setConnectionError] = useState(false)
 
   useEffect(() => {
-    const newSocket = io(BACKEND_URL)
-    setSocket(newSocket)
+    const connectSocket = () => {
+      const newSocket = io(BACKEND_URL, {
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+      })
 
-    newSocket.on('heart_click', (data) => {
-      createFloatingHeart(data.x, data.y, true)
-    })
+      newSocket.on('connect', () => {
+        setConnectionError(false)
+        setSocket(newSocket)
+      })
 
-    return () => newSocket.disconnect()
+      newSocket.on('connect_error', (error) => {
+        console.error('Socket connection error:', error)
+        setConnectionError(true)
+      })
+
+      newSocket.on('heart_click', (data) => {
+        createFloatingHeart(data.x, data.y, true)
+      })
+
+      return newSocket
+    }
+
+    const socket = connectSocket()
+
+    return () => socket.disconnect()
   }, [])
 
   const createFloatingHeart = (x, y, isRemote = false) => {
@@ -41,6 +61,11 @@ function App() {
 
   return (
     <div className="app" onClick={handleClick}>
+      {connectionError && (
+        <div className="error-message">
+          Unable to connect to server. Please try again later.
+        </div>
+      )}
       <div id="heart-container"></div>
       <div className="click-count">
         Hearts sent: {clickCount}
