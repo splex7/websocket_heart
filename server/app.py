@@ -1,4 +1,5 @@
 import eventlet
+eventlet.monkey_patch()
 import eventlet.wsgi
 from flask import Flask, render_template, request
 from flask_socketio import SocketIO, emit, disconnect
@@ -77,7 +78,7 @@ def monitor_clients():
 
 if __name__ == "__main__":
     # Configure eventlet worker settings
-    eventlet.monkey_patch()
+
     eventlet.wsgi.MAX_HEADER_LINE = 32768
     eventlet.wsgi.MINIMUM_CHUNK_SIZE = 4096
     
