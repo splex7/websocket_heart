@@ -88,4 +88,4 @@ if __name__ == "__main__":
     print("🚀 Server running with HTTPS on port 5000")
     
     # Run eventlet WSGI server with SSL
-    eventlet.wsgi.server(wrapped_socket, socketio.wsgi_app)
+    eventlet.wsgi.server(wrapped_socket, app)
