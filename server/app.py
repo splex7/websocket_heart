@@ -1,3 +1,5 @@
+import eventlet
+import eventlet.wsgi
 from flask import Flask, render_template, request
 from flask_socketio import SocketIO, emit, disconnect
 from flask_cors import CORS
@@ -76,15 +78,14 @@ def monitor_clients():
 
 if __name__ == "__main__":
     threading.Thread(target=monitor_clients, daemon=True).start()
+    # SSL configuration
     ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-    ssl_context.load_cert_chain(
-        certfile='cert.pem',
-        keyfile='key.pem'
-    )
-    socketio.run(
-        app,
-        debug=True,
-        host='0.0.0.0',
-        port=5000,
-        ssl_context=ssl_context
-    )
+    ssl_context.load_cert_chain("cert.pem", "key.pem")
+    
+    # Create eventlet socket and wrap with SSL
+    eventlet_socket = eventlet.listen(("0.0.0.0", 5000))
+    wrapped_socket = ssl_context.wrap_socket(eventlet_socket, server_side=True)
+    print("🚀 Server running with HTTPS on port 5000")
+    
+    # Run eventlet WSGI server with SSL
+    eventlet.wsgi.server(wrapped_socket, socketio.wsgi_app)
