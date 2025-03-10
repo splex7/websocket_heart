@@ -8,7 +8,6 @@ import time
 from datetime import datetime
 import json
 import os
-import ssl
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
@@ -77,15 +76,14 @@ def monitor_clients():
                     print(f"  - {ts}")
 
 if __name__ == "__main__":
+    # Configure eventlet worker settings
+    eventlet.monkey_patch()
+    eventlet.wsgi.MAX_HEADER_LINE = 32768
+    eventlet.wsgi.MINIMUM_CHUNK_SIZE = 4096
+    
+    # Start monitoring thread
     threading.Thread(target=monitor_clients, daemon=True).start()
-    # SSL configuration
-    ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-    ssl_context.load_cert_chain("cert.pem", "key.pem")
     
-    # Create eventlet socket and wrap with SSL
-    eventlet_socket = eventlet.listen(("0.0.0.0", 5000))
-    wrapped_socket = ssl_context.wrap_socket(eventlet_socket, server_side=True)
-    print("🚀 Server running with HTTPS on port 5000")
-    
-    # Run eventlet WSGI server with SSL
-    eventlet.wsgi.server(wrapped_socket, app)
+    # Run the server
+    print("🚀 Server running on http://0.0.0.0:5000")
+    socketio.run(app, host='0.0.0.0', port=5000, log_output=True)
